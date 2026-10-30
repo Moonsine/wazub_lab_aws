@@ -1,0 +1,42 @@
+<!-- Custom rules for the Wazuh lab.
+     Paste inside /var/ossec/etc/rules/local_rules.xml (Server management > Rules > local_rules.xml).
+     Keep every rule INSIDE a <group> element. A rule placed after a closing </group> causes
+     "XML syntax error" on save.
+     Rule files match fields WITHOUT the "data." prefix that the dashboard shows. -->
+
+<group name="local,windows,custom,">
+
+  <!-- 100100: privileged account locked out (TESTED).
+       Parent 60115 = "User account locked out (multiple login errors)", event 4740.
+       Positive test: lock out "labadmin". Negative test: lock out "labtest" (no 100100). -->
+  <rule id="100100" level="12">
+    <if_sid>60115</if_sid>
+    <field name="win.eventdata.targetUserName" type="pcre2">(?i)^(administrator|labadmin)$</field>
+    <description>Privileged account locked out: $(win.eventdata.targetUserName) on $(win.system.computer)</description>
+  </rule>
+
+  <!-- 100101: privileged account deleted (TESTED).
+       Parent 60111 = "User account disabled or deleted"; the eventID filter keeps it to
+       deletions (4726) and excludes disables (4725). -->
+  <rule id="100101" level="12">
+    <if_sid>60111</if_sid>
+    <field name="win.system.eventID">^4726$</field>
+    <field name="win.eventdata.targetUserName" type="pcre2">(?i)^(administrator|labadmin)$</field>
+    <description>Privileged account deleted: $(win.eventdata.targetUserName) on $(win.system.computer)</description>
+  </rule>
+
+  <!-- 100102: critical agent stopped (WRITTEN, NOT YET TESTED).
+       Parent 506 = "Wazuh agent stopped"; full_log reads "Agent stopped: 'wazuh-lab->any'".
+       Test: Stop-Service WazuhSvc on the Windows host, then search rule.id:100102.
+       Remove the comment markers once you have tested it.
+  <rule id="100102" level="12">
+    <if_sid>506</if_sid>
+    <match>Agent stopped: 'wazuh-lab</match>
+    <description>Critical agent stopped: wazuh-lab (possible security tool tampering)</description>
+    <mitre>
+      <id>T1562.001</id>
+    </mitre>
+  </rule>
+  -->
+
+</group>
